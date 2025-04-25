@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Mantenimiento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .form-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .suggestion-item {
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .suggestion-item:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Sistema de Mantenimiento</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('registro') }}">Registrar Mantenimiento</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">Cerrar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h2 class="mb-4">Registrar Nuevo Mantenimiento</h2>
+
+        <form id="mantenimientoForm" onsubmit="return guardarMantenimiento(event)">
+            <div class="form-section">
+                <h4 class="mb-3">Información Básica</h4>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="vehiculo" class="form-label">Vehículo</label>
+                        <select class="form-select" id="vehiculo" required onchange="cargarTiposMantenimiento()">
+                            <option value="">Seleccione un vehículo</option>
+                            {% for v in vehiculos %}
+                            <option value="{{ v.id }}" data-detalle-id="{{ v.detalle_id }}">{{ v.alias }} - {{ v.marca }} {{ v.modelo }} {{ v.anio }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="fecha" class="form-label">Fecha</label>
+                        <input type="date" class="form-control" id="fecha" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="kilometraje" class="form-label">Kilometraje</label>
+                        <input type="number" class="form-control" id="kilometraje" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="precio" class="form-label">Precio</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₡</span>
+                            <input type="number" class="form-control" id="precio" step="0.01" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h4 class="mb-3">Tipo de Mantenimiento</h4>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="categoria" class="form-label">Categoría</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="categoria" required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="sugerirCategoria()">
+                                <i class="bi bi-lightbulb"></i>
+                            </button>
+                        </div>
+                        <div id="categoriaSuggestions" class="mt-2"></div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="tipo_mantenimiento" class="form-label">Tipo de Mantenimiento</label>
+                        <div class="input-group">
+                            <select class="form-select" id="tipo_mantenimiento">
+                                <option value="">Seleccione un tipo</option>
+                            </select>
+                            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#nuevoTipoModal">
+                                <i class="bi bi-plus-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h4 class="mb-3">Mecánico</h4>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="mecanico" class="form-label">Seleccionar Mecánico</label>
+                        <div class="input-group">
+                            <select class="form-select" id="mecanico" required>
+                                <option value="">Seleccione un mecánico</option>
+                                {% for m in mecanicos %}
+                                <option value="{{ m.id }}">{{ m.nombre_mecanico }}</option>
+                                {% endfor %}
+                            </select>
+                            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#nuevoMecanicoModal">
+                                <i class="bi bi-plus-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h4 class="mb-3">Próximo Mantenimiento</h4>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="fecha_proximo" class="form-label">Fecha Próximo Mantenimiento</label>
+                        <input type="date" class="form-control" id="fecha_proximo">
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button type="button" class="btn btn-secondary me-md-2" onclick="window.history.back()">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Mantenimiento</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Modal Nuevo Tipo de Mantenimiento -->
+    <div class="modal fade" id="nuevoTipoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Tipo de Mantenimiento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="nuevoTipoForm">
+                        <div class="mb-3">
+                            <label for="nombre_tipo" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre_tipo" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="categoria_tipo" class="form-label">Categoría</label>
+                            <input type="text" class="form-control" id="categoria_tipo" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="kilometros" class="form-label">Kilómetros para Próximo Mantenimiento</label>
+                            <input type="number" class="form-control" id="kilometros">
+                        </div>
+                        <div class="mb-3">
+                            <label for="meses" class="form-label">Meses para Próximo Mantenimiento</label>
+                            <input type="number" class="form-control" id="meses">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="agregarTipoMantenimiento()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nuevo Mecánico -->
+    <div class="modal fade" id="nuevoMecanicoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Mecánico</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="nuevoMecanicoForm">
+                        <div class="mb-3">
+                            <label for="nombre_mecanico" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre_mecanico" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="telefono_mecanico" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="telefono_mecanico">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="agregarMecanico()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Set today's date as default
+        document.getElementById('fecha').valueAsDate = new Date();
+
+        function cargarTiposMantenimiento() {
+            const vehiculoId = document.getElementById('vehiculo').value;
+            if (!vehiculoId) return;
+
+            fetch(`/get_tipos_mantenimiento/${vehiculoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('tipo_mantenimiento');
+                    select.innerHTML = '<option value="">Seleccione un tipo</option>';
+                    data.tipos.forEach(tipo => {
+                        const option = document.createElement('option');
+                        option.value = tipo.id;
+                        option.textContent = tipo.nombre;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function agregarTipoMantenimiento() {
+            const vehiculoSelect = document.getElementById('vehiculo');
+            const vehiculoId = vehiculoSelect.value;
+            const detalleId = vehiculoSelect.options[vehiculoSelect.selectedIndex].dataset.detalleId;
+
+            const formData = {
+                nombre: document.getElementById('nombre_tipo').value,
+                categoria: document.getElementById('categoria_tipo').value,
+                kilometros: document.getElementById('kilometros').value || null,
+                meses: document.getElementById('meses').value || null,
+                vehiculo_id: vehiculoId
+            };
+
+            fetch('/agregar_tipo_mantenimiento', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('nuevoTipoModal'));
+                    modal.hide();
+                    cargarTiposMantenimiento();
+                    document.getElementById('nuevoTipoForm').reset();
+                } else {
+                    alert(data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al procesar la solicitud');
+            });
+        }
+
+        function agregarMecanico() {
+            const formData = {
+                nombre: document.getElementById('nombre_mecanico').value,
+                telefono: document.getElementById('telefono_mecanico').value
+            };
+
+            fetch('/agregar_mecanico', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('nuevoMecanicoModal'));
+                    modal.hide();
+                    
+                    // Add new mechanic to select
+                    const select = document.getElementById('mecanico');
+                    const option = document.createElement('option');
+                    option.value = data.mecanico.id;
+                    option.textContent = data.mecanico.nombre;
+                    select.appendChild(option);
+                    select.value = data.mecanico.id;
+
+                    document.getElementById('nuevoMecanicoForm').reset();
+                } else {
+                    alert(data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al procesar la solicitud');
+            });
+        }
+
+        function sugerirCategoria() {
+            const descripcion = document.getElementById('tipo_mantenimiento').options[
+                document.getElementById('tipo_mantenimiento').selectedIndex
+            ].text;
+
+            if (!descripcion) {
+                alert('Por favor, seleccione o ingrese un tipo de mantenimiento primero.');
+                return;
+            }
+
+            fetch('/sugerir_categoria', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ descripcion: descripcion })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const suggestionsDiv = document.getElementById('categoriaSuggestions');
+                    suggestionsDiv.innerHTML = '';
+                    
+                    data.sugerencias.forEach(sugerencia => {
+                        const div = document.createElement('div');
+                        div.className = 'suggestion-item';
+                        div.textContent = sugerencia;
+                        div.onclick = () => {
+                            document.getElementById('categoria').value = sugerencia;
+                            suggestionsDiv.innerHTML = '';
+                        };
+                        suggestionsDiv.appendChild(div);
+                    });
+                } else {
+                    alert(data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al procesar la solicitud');
+            });
+        }
+
+        function guardarMantenimiento(event) {
+            event.preventDefault();
+
+            const formData = {
+                vehiculo_id: document.getElementById('vehiculo').value,
+                fecha: document.getElementById('fecha').value,
+                kilometraje: document.getElementById('kilometraje').value,
+                precio: document.getElementById('precio').value,
+                tipo_mantenimiento_id: document.getElementById('tipo_mantenimiento').value,
+                categoria: document.getElementById('categoria').value,
+                mecanico_id: document.getElementById('mecanico').value,
+                fecha_proximo: document.getElementById('fecha_proximo').value || null
+            };
+
+            fetch('/guardar_mantenimiento', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = `/mantenimientos/${formData.vehiculo_id}`;
+                } else {
+                    alert(data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al procesar la solicitud');
+            });
+
+            return false;
+        }
+    </script>
+</body>
+</html>
