@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mantenimientos - {{ vehiculo.alias }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Mantenimientos - {{ vehiculo.alias }}</h1>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">Volver</a>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <!-- Filtros -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <label for="filtroCategoria" class="form-label">Categoría</label>
+                        <select id="filtroCategoria" class="form-select">
+                            <option value="">Todas las categorías</option>
+                            {% for cat in tipos_mantenimiento|map(attribute='categoria')|unique %}
+                            <option value="{{ cat }}">{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="filtroTipo" class="form-label">Tipo de Mantenimiento</label>
+                        <select id="filtroTipo" class="form-select">
+                            <option value="">Todos los tipos</option>
+                            {% for tipo in tipos_mantenimiento %}
+                            <option value="{{ tipo.nombre }}">{{ tipo.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="filtroMecanico" class="form-label">Mecánico</label>
+                        <select id="filtroMecanico" class="form-select">
+                            <option value="">Todos los mecánicos</option>
+                            {% for mecanico in mecanicos %}
+                            <option value="{{ mecanico.nombre_mecanico }}">{{ mecanico.nombre_mecanico }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 mt-3">
+                        <button id="limpiarFiltros" class="btn btn-secondary">Limpiar Filtros</button>
+                    </div>
+                </div>
+
+                <table id="tablaMantenimientos" class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Kilometraje</th>
+                            <th>Categoría</th>
+                            <th>Tipo de Mantenimiento</th>
+                            <th>Mecánico</th>
+                            <th>Próximo Mantenimiento</th>
+                            <th>Próximo Kilometraje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in mantenimientos %}
+                        <tr>
+                            <td data-order="{{ m.fecha_iso }}">{{ m.fecha }}</td>
+                            <td>{{ m.kilometraje }}</td>
+                            <td>{{ m.categoria }}</td>
+                            <td>{{ tipos_mantenimiento[m.tipo_mantenimiento_id].nombre }}</td>
+                            <td>{{ m.mecanico }}</td>
+                            <td data-order="{{ m.fecha_proximo_iso if m.fecha_proximo_iso else '' }}"
+                                {% if m.fecha_proximo_iso and m.fecha_proximo_iso < today_iso %}
+                                    class="text-danger fw-bold"
+                                {% endif %}>
+                                {{ m.fecha_proximo if m.fecha_proximo else '' }}
+                            </td>
+                            <td data-order="{{ m.proximo_km if m.proximo_km else 999999999 }}"
+                                {% if m.proximo_km and m.kilometraje > m.proximo_km %}
+                                    class="text-danger fw-bold"
+                                {% endif %}>
+                                {{ m.proximo_km if m.proximo_km }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts remain the same -->
+</body>
+</html>
