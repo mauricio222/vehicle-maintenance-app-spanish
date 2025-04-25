@@ -3,196 +3,559 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mantenimientos</title>
+    <script>
+        // For screens 1440px or less, set a zoomed-out view so that all columns are visible by default
+        if (window.matchMedia("(max-width: 1440px)").matches) {
+            var viewport = document.querySelector("meta[name=viewport]");
+            if (viewport) {
+                viewport.setAttribute("content", "width=device-width, initial-scale=0.5");
+            }
+        }
+    </script>
+    <title>Mantenimientos - {{ vehiculo.alias }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
     <style>
-        .maintenance-card {
-            transition: transform 0.2s;
+        #tablaMantenimientos {
+            border: none;
         }
-        .maintenance-card:hover {
-            transform: translateY(-5px);
+
+        #tablaMantenimientos th,
+        #tablaMantenimientos td {
+            border: none;
         }
-        .filter-section {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
+
+        #tablaMantenimientos thead th {
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        /* Remove card borders */
+        .card {
+            border: none;
+            box-shadow: none;
+        }
+
+        /* Remove DataTable controls borders */
+        .dataTables_wrapper .row:first-child,
+        .dataTables_wrapper .row:last-child {
+            border: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Remove spacing between elements */
+        .dataTables_wrapper .row {
+            margin: 0;
+        }
+
+        /* Center main container */
+        .container.mt-4 {
+            margin-left: auto !important;
+            margin-right: auto !important;
+            text-align: left;
+        }
+
+        @media (max-width: 1440px) {
+            /* Left align main container on devices with widths up to 1440px */
+            .container.mt-4 {
+                margin-left: 0 !important;
+                margin-right: auto !important;
+            }
+        }
+
+        /* Style for the search box */
+        .search-container {
             margin-bottom: 20px;
         }
-        .status-indicator {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 5px;
+
+        #searchInput {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ced4da;
         }
-        .status-ok { background-color: #28a745; }
-        .status-warning { background-color: #ffc107; }
-        .status-danger { background-color: #dc3545; }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">Sistema de Mantenimiento</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('registro') }}">Registrar Mantenimiento</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('logout') }}">Cerrar Sesión</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
     <div class="container mt-4">
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <h2>{{ vehiculo.alias }}</h2>
-                <p>Último kilometraje registrado: {{ vehiculo.ultimo_kilometraje|default('No registrado', true) }}</p>
-            </div>
-            <div class="col-md-6 text-end">
-                <a href="{{ url_for('registro') }}" class="btn btn-primary">
-                    <i class="bi bi-plus-circle"></i> Nuevo Mantenimiento
-                </a>
-            </div>
-        </div>
-
-        <div class="filter-section">
-            <div class="row">
-                <div class="col-md-3">
-                    <label for="categoriaFilter" class="form-label">Categoría</label>
-                    <select class="form-select" id="categoriaFilter">
-                        <option value="">Todas</option>
-                        {% for categoria in categorias_unicas %}
-                        <option value="{{ categoria }}">{{ categoria }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="tipoFilter" class="form-label">Tipo</label>
-                    <select class="form-select" id="tipoFilter">
-                        <option value="">Todos</option>
-                        {% for tipo in tipos_unicos %}
-                        <option value="{{ tipo }}">{{ tipo }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="mecanicoFilter" class="form-label">Mecánico</label>
-                    <select class="form-select" id="mecanicoFilter">
-                        <option value="">Todos</option>
-                        {% for mecanico in mecanicos_unicos %}
-                        <option value="{{ mecanico }}">{{ mecanico }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="fechaFilter" class="form-label">Ordenar por Fecha</label>
-                    <select class="form-select" id="fechaFilter">
-                        <option value="desc">Más reciente primero</option>
-                        <option value="asc">Más antiguo primero</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <div class="row" id="mantenimientosContainer">
-            {% for m in mantenimientos %}
-            <div class="col-md-6 mb-4 maintenance-item" 
-                 data-categoria="{{ m.categoria }}"
-                 data-tipo="{{ m.tipo_mantenimiento }}"
-                 data-mecanico="{{ m.mecanico }}"
-                 data-fecha="{{ m.fecha_iso }}">
-                <div class="card maintenance-card h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h5 class="card-title">{{ m.tipo_mantenimiento }}</h5>
-                            <span class="badge bg-secondary">{{ m.categoria }}</span>
-                        </div>
-                        <p class="card-text">
-                            <strong>Fecha:</strong> {{ m.fecha }}<br>
-                            <strong>Kilometraje:</strong> {{ m.kilometraje }} km<br>
-                            <strong>Mecánico:</strong> {{ m.mecanico }}<br>
-                            <strong>Precio:</strong> ₡{{ "%.2f"|format(m.precio|float) }}
-                        </p>
-                        {% if m.fecha_proximo or m.proximo_km %}
-                        <div class="mt-3 pt-3 border-top">
-                            <h6>Próximo Mantenimiento:</h6>
-                            {% if m.fecha_proximo %}
-                            <p class="mb-1">
-                                <span class="status-indicator 
-                                    {{'status-danger' if m.fecha_proximo_iso <= today_iso else 'status-ok'}}">
-                                </span>
-                                <strong>Fecha:</strong> {{ m.fecha_proximo }}
-                            </p>
-                            {% endif %}
-                            {% if m.proximo_km %}
-                            <p class="mb-1">
-                                <span class="status-indicator 
-                                    {{'status-danger' if vehiculo.ultimo_kilometraje >= m.proximo_km else 
-                                      'status-warning' if vehiculo.ultimo_kilometraje >= (m.proximo_km - 1000) else 
-                                      'status-ok'}}">
-                                </span>
-                                <strong>Kilometraje:</strong> {{ m.proximo_km }} km
-                            </p>
-                            {% endif %}
-                        </div>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="mb-2">Mantenimientos - {{ vehiculo.alias }}</h1>
+                <p class="mb-0 text-muted">{{ vehiculo.marca }} {{ vehiculo.modelo }} {{ vehiculo.anio }}</p>
+                <p class="mb-0 text-muted small">
+                    Último Kilometraje:
+                    <span class="fw-bold">
+                        {% if vehiculo.ultimo_kilometraje is not none %}
+                            {{ "{:,.0f}".format(vehiculo.ultimo_kilometraje).replace(',', '.') }} km
+                        {% else %}
+                            N/A
                         {% endif %}
+                    </span>
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Volver</a>
+                {% if g.user %}
+                    <a href="{{ url_for('logout') }}" class="btn btn-danger ms-2">Cerrar Sesión ({{ g.user.username }})</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <!-- Filtros -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <label for="filtroCategoria" class="form-label">Categoría</label>
+                        <select id="filtroCategoria" class="form-select">
+                            <option value="">Todas las categorías</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="filtroTipo" class="form-label">Tipo de Mantenimiento</label>
+                        <select id="filtroTipo" class="form-select">
+                            <option value="">Todos los tipos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="filtroMecanico" class="form-label">Mecánico</label>
+                        <select id="filtroMecanico" class="form-select">
+                            <option value="">Todos los mecánicos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8 mt-3">
+                        <label for="searchInput" class="form-label">Buscar:</label>
+                        <input type="text" id="searchInput" class="form-control" placeholder="Buscar en todos los campos...">
+                    </div>
+                    <div class="col-md-4 mt-3 d-flex align-items-end">
+                        <button id="limpiarFiltros" class="btn btn-secondary">Limpiar Filtros</button>
                     </div>
                 </div>
+
+                <h4 class="mb-3">Últimos Mantenimientos</h4>
+                <table id="tablaMantenimientos" class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Kilometraje</th>
+                            <th>Categoría</th>
+                            <th>Tipo de Mantenimiento</th>
+                            <th>Mecánico</th>
+                            <th>Precio</th>
+                            <th>Próximo Mantenimiento</th>
+                            <th>Próximo Kilometraje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Esta tabla se llenará con JavaScript -->
+                    </tbody>
+                </table>
+
+                <h4 class="mt-5 mb-3">Mantenimientos Repetidos</h4>
+                <table id="tablaMantenimientosRepetidos" class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Kilometraje</th>
+                            <th>Categoría</th>
+                            <th>Tipo de Mantenimiento</th>
+                            <th>Mecánico</th>
+                            <th>Precio</th>
+                            <th>Próximo Mantenimiento</th>
+                            <th>Próximo Kilometraje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Esta tabla se llenará con JavaScript -->
+                    </tbody>
+                </table>
             </div>
-            {% endfor %}
+        </div>
+        <div class="mt-3 text-center">
+            <button id="descargarDatos" class="btn btn-primary">Descargar Datos</button>
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <script>
-        function filterMantenimientos() {
-            const categoria = document.getElementById('categoriaFilter').value;
-            const tipo = document.getElementById('tipoFilter').value;
-            const mecanico = document.getElementById('mecanicoFilter').value;
-            const fechaOrder = document.getElementById('fechaFilter').value;
+        $(document).ready(function() {
+            // Preparar los datos para dividir en dos tablas
+            var mantenimientos = [];
 
-            const items = document.querySelectorAll('.maintenance-item');
-            const container = document.getElementById('mantenimientosContainer');
-            const itemsArray = Array.from(items);
+            {% for m in mantenimientos %}
+            mantenimientos.push({
+                fecha: "{{ m.fecha }}",
+                fecha_iso: "{{ m.fecha_iso }}",
+                kilometraje: {{ m.kilometraje }},
+                categoria: "{{ m.categoria }}",
+                tipo_mantenimiento: "{{ m.tipo_mantenimiento }}",
+                mecanico: "{{ m.mecanico }}",
+                precio: "{% if m.precio %}{{ m.precio|int }}{% endif %}",
+                fecha_proximo: "{{ m.fecha_proximo }}",
+                fecha_proximo_iso: "{{ m.fecha_proximo_iso|default('') }}",
+                proximo_km: {% if m.proximo_km %}{{ m.proximo_km }}{% else %}null{% endif %},
+                today_iso: "{{ today_iso }}"
+            });
+            {% endfor %}
 
-            itemsArray.forEach(item => {
-                const matchCategoria = !categoria || item.dataset.categoria === categoria;
-                const matchTipo = !tipo || item.dataset.tipo === tipo;
-                const matchMecanico = !mecanico || item.dataset.mecanico === mecanico;
-
-                item.style.display = (matchCategoria && matchTipo && matchMecanico) ? '' : 'none';
+            // Ordenar por tipo de mantenimiento y fecha (más reciente primero)
+            mantenimientos.sort(function(a, b) {
+                if (a.tipo_mantenimiento === b.tipo_mantenimiento) {
+                    return b.fecha_iso.localeCompare(a.fecha_iso);
+                }
+                return a.tipo_mantenimiento.localeCompare(b.tipo_mantenimiento);
             });
 
-            // Sort by date
-            itemsArray.sort((a, b) => {
-                const dateA = new Date(a.dataset.fecha);
-                const dateB = new Date(b.dataset.fecha);
-                return fechaOrder === 'asc' ? dateA - dateB : dateB - dateA;
+            // Separar en últimos y repetidos
+            var ultimosMantenimientos = [];
+            var mantenimientosRepetidos = [];
+            var tiposVistos = {};
+
+            mantenimientos.forEach(function(m) {
+                if (!tiposVistos[m.tipo_mantenimiento]) {
+                    ultimosMantenimientos.push(m);
+                    tiposVistos[m.tipo_mantenimiento] = true;
+                } else {
+                    mantenimientosRepetidos.push(m);
+                }
             });
 
-            // Reorder elements
-            itemsArray.forEach(item => container.appendChild(item));
-        }
+            // Función para llenar una tabla con datos
+            function llenarTabla(tablaId, datos) {
+                var tbody = $(tablaId + ' tbody');
+                tbody.empty();
 
-        // Add event listeners
-        document.getElementById('categoriaFilter').addEventListener('change', filterMantenimientos);
-        document.getElementById('tipoFilter').addEventListener('change', filterMantenimientos);
-        document.getElementById('mecanicoFilter').addEventListener('change', filterMantenimientos);
-        document.getElementById('fechaFilter').addEventListener('change', filterMantenimientos);
+                datos.forEach(function(m) {
+                    var row = '<tr>' +
+                        '<td data-order="' + m.fecha_iso + '">' + m.fecha + '</td>' +
+                        '<td>' + m.kilometraje + '</td>' +
+                        '<td>' + m.categoria + '</td>' +
+                        '<td>' + m.tipo_mantenimiento + '</td>' +
+                        '<td>' + m.mecanico + '</td>' +
+                        '<td>' + m.precio + '</td>' +
+                        '<td data-order="' + (m.fecha_proximo_iso || '') + '"' +
+                        (m.fecha_proximo_iso && m.fecha_proximo_iso < m.today_iso ? ' class="text-danger fw-bold"' : '') +
+                        '>' + m.fecha_proximo + '</td>' +
+                        '<td data-order="' + (m.proximo_km || 999999999) + '"' +
+                        (m.proximo_km && m.kilometraje > m.proximo_km ? ' class="text-danger fw-bold"' : '') +
+                        '>' + (m.proximo_km || '') + '</td>' +
+                        '</tr>';
+                    tbody.append(row);
+                });
+            }
+
+            // Llenar ambas tablas
+            llenarTabla('#tablaMantenimientos', ultimosMantenimientos);
+            llenarTabla('#tablaMantenimientosRepetidos', mantenimientosRepetidos);
+
+            // Inicializar Select2 en los filtros
+            $('#filtroCategoria, #filtroTipo, #filtroMecanico').select2({
+                width: '100%',
+                placeholder: 'Seleccione una opción'
+            });
+
+            // Inicializar DataTables
+            var tablaUltimos = $('#tablaMantenimientos').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
+                },
+                order: [[6, 'asc']],  // Sort by column 6 (Próximo Mantenimiento) ascending
+                pageLength: 100,
+                columnDefs: [
+                    { orderable: true, targets: '_all' },
+                    { targets: 2, visible: false },
+                    {
+                        targets: 0,
+                        type: 'date-eu'
+                    },
+                    {
+                        targets: 6,  // Próximo Mantenimiento column
+                        type: 'date-eu',
+                        orderData: [6],
+                        createdCell: function(cell, cellData, rowData, rowIndex, colIndex) {
+                            $(cell).attr('data-order', cellData ? cellData : '9999-12-31');
+                        }
+                    },
+                    {
+                        targets: 7,  // Próximo Kilometraje column
+                        type: 'num'
+                    }
+                ],
+                initComplete: function() {
+                    actualizarFiltros();
+                }
+            });
+
+            var tablaRepetidos = $('#tablaMantenimientosRepetidos').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
+                },
+                order: [[0, 'desc']],  // Sort by date descending
+                pageLength: 100,
+                columnDefs: [
+                    { orderable: true, targets: '_all' },
+                    { targets: 2, visible: false },
+                    {
+                        targets: 0,
+                        type: 'date-eu'
+                    },
+                    {
+                        targets: 6,
+                        type: 'date-eu',
+                        orderData: [6],
+                        createdCell: function(cell, cellData, rowData, rowIndex, colIndex) {
+                            $(cell).attr('data-order', cellData ? cellData : '9999-12-31');
+                        }
+                    },
+                    {
+                        targets: 7,
+                        type: 'num'
+                    }
+                ]
+            });
+
+            // Función para actualizar opciones de los filtros
+            function actualizarFiltros() {
+                // Recolectar datos de ambas tablas
+                var datosAplicados = tablaUltimos.rows({ search: 'applied' }).data();
+                var datosAplicadosRepetidos = tablaRepetidos.rows({ search: 'applied' }).data();
+
+                var tipos = new Set();
+                var mecanicos = new Set();
+
+                // Procesar datos de la primera tabla
+                datosAplicados.each(function(row) {
+                    tipos.add(row[3]);
+                    mecanicos.add(row[4]);
+                });
+
+                // Procesar datos de la segunda tabla
+                datosAplicadosRepetidos.each(function(row) {
+                    tipos.add(row[3]);
+                    mecanicos.add(row[4]);
+                });
+
+                // Para Categoría, usar datos de todas las filas
+                var datosTodos = tablaUltimos.rows().data();
+                var datosTodosRepetidos = tablaRepetidos.rows().data();
+                var todasCategorias = new Set();
+
+                datosTodos.each(function(row) {
+                    todasCategorias.add(row[2]);
+                });
+
+                datosTodosRepetidos.each(function(row) {
+                    todasCategorias.add(row[2]);
+                });
+
+                actualizarSelect('#filtroCategoria', Array.from(todasCategorias).sort());
+                actualizarSelect('#filtroTipo', Array.from(tipos).sort());
+                actualizarSelect('#filtroMecanico', Array.from(mecanicos).sort());
+            }
+
+            function actualizarSelect(selector, valores) {
+                var select = $(selector);
+                var currentVal = select.val();
+                select.empty().append('<option value="">' + (selector === '#filtroCategoria' ? 'Todas las categorías' :
+                                                           selector === '#filtroTipo' ? 'Todos los tipos' :
+                                                           'Todos los mecánicos') + '</option>');
+                valores.forEach(function(valor) {
+                    select.append(new Option(valor, valor));
+                });
+                select.val(currentVal).trigger('change.select2');
+            }
+
+            // Eventos para filtros y actualización
+            tablaUltimos.on('draw.dt', actualizarFiltros);
+            tablaRepetidos.on('draw.dt', actualizarFiltros);
+
+            $('#filtroCategoria').on('change', function() {
+                var valor = this.value;
+                tablaUltimos.column(2).search(valor).draw();
+                tablaRepetidos.column(2).search(valor).draw();
+            });
+
+            $('#filtroTipo').on('change', function() {
+                var valor = this.value;
+                tablaUltimos.column(3).search(valor).draw();
+                tablaRepetidos.column(3).search(valor).draw();
+            });
+
+            $('#filtroMecanico').on('change', function() {
+                var valor = this.value;
+                tablaUltimos.column(4).search(valor).draw();
+                tablaRepetidos.column(4).search(valor).draw();
+            });
+
+            // Implementar búsqueda global que afecte a ambas tablas
+            $('#searchInput').on('keyup', function() {
+                var searchTerm = $(this).val();
+                tablaUltimos.search(searchTerm).draw();
+                tablaRepetidos.search(searchTerm).draw();
+            });
+
+            // Limpiar filtros
+            $('#limpiarFiltros').on('click', function() {
+                // Limpiar selecciones de Select2
+                $('#filtroCategoria, #filtroTipo, #filtroMecanico').val('').trigger('change');
+
+                // Limpiar búsqueda global
+                $('#searchInput').val('');
+
+                // Limpiar filtros de DataTable
+                tablaUltimos.search('').columns().search('').draw();
+                tablaRepetidos.search('').columns().search('').draw();
+            });
+
+            // When "Descargar Datos" is clicked, show the download options modal
+            $('#descargarDatos').on('click', function() {
+                var downloadModal = new bootstrap.Modal(document.getElementById('downloadModal'));
+                downloadModal.show();
+            });
+
+            // Function to generate and download CSV from both tables
+            function downloadCSV() {
+                var csv = '';
+                var headers = [];
+                $('#tablaMantenimientos thead th').each(function() {
+                    headers.push('"' + $(this).text().trim() + '"');
+                });
+                csv += headers.join(',') + "\n";
+
+                // Añadir datos de la primera tabla
+                $('#tablaMantenimientos tbody tr').each(function() {
+                    var row = [];
+                    $(this).find('td').each(function() {
+                        row.push('"' + $(this).text().trim() + '"');
+                    });
+                    csv += row.join(',') + "\n";
+                });
+
+                // Añadir datos de la segunda tabla
+                $('#tablaMantenimientosRepetidos tbody tr').each(function() {
+                    var row = [];
+                    $(this).find('td').each(function() {
+                        row.push('"' + $(this).text().trim() + '"');
+                    });
+                    csv += row.join(',') + "\n";
+                });
+
+                var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                var link = document.createElement("a");
+                var url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", "mantenimientos_{{ vehiculo.alias }}.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            // CSV download event
+            $('#downloadCSV').on('click', function() {
+                downloadCSV();
+                var modalInstance = bootstrap.Modal.getInstance(document.getElementById('downloadModal'));
+                modalInstance.hide();
+            });
+
+            // XLSX download event using SheetJS
+            $('#downloadXLSX').on('click', function() {
+                // Crear una tabla temporal combinando ambas tablas para la exportación
+                var tempTable = document.createElement('table');
+                tempTable.id = 'tempTableForExport';
+                tempTable.style.display = 'none';
+                document.body.appendChild(tempTable);
+
+                // Copiar encabezados
+                var headerRow = document.createElement('tr');
+                $('#tablaMantenimientos thead th').each(function() {
+                    var th = document.createElement('th');
+                    th.textContent = $(this).text().trim();
+                    headerRow.appendChild(th);
+                });
+
+                var thead = document.createElement('thead');
+                thead.appendChild(headerRow);
+                tempTable.appendChild(thead);
+
+                // Copiar filas de ambas tablas
+                var tbody = document.createElement('tbody');
+
+                // Copiar filas de la primera tabla
+                $('#tablaMantenimientos tbody tr').each(function() {
+                    var newRow = document.createElement('tr');
+                    $(this).find('td').each(function() {
+                        var td = document.createElement('td');
+                        td.textContent = $(this).text().trim();
+                        newRow.appendChild(td);
+                    });
+                    tbody.appendChild(newRow);
+                });
+
+                // Copiar filas de la segunda tabla
+                $('#tablaMantenimientosRepetidos tbody tr').each(function() {
+                    var newRow = document.createElement('tr');
+                    $(this).find('td').each(function() {
+                        var td = document.createElement('td');
+                        td.textContent = $(this).text().trim();
+                        newRow.appendChild(td);
+                    });
+                    tbody.appendChild(newRow);
+                });
+
+                tempTable.appendChild(tbody);
+
+                // Create workbook from the temporary table
+                var wb = XLSX.utils.table_to_book(tempTable, {
+                    sheet: "Mantenimientos",
+                    raw: true // Preserve raw cell values
+                });
+
+                // Get worksheet and define date format (DD/MM/YYYY)
+                var ws = wb.Sheets["Mantenimientos"];
+                var dateFormat = "dd/mm/yyyy";
+
+                // Apply date format to columns A (0 - Fecha) and G (6 - Próximo Mantenimiento)
+                var range = XLSX.utils.decode_range(ws['!ref']);
+                for(var R = 1; R <= range.e.r; ++R) { // Skip header row
+                    [0, 6].forEach(function(C) {
+                        var cell = XLSX.utils.encode_cell({r:R, c:C});
+                        if(ws[cell]) ws[cell].z = dateFormat;
+                    });
+                }
+
+                // Write file with formatted dates
+                XLSX.writeFile(wb, "mantenimientos_{{ vehiculo.alias }}.xlsx");
+
+                // Eliminar la tabla temporal
+                document.body.removeChild(tempTable);
+
+                var modalInstance = bootstrap.Modal.getInstance(document.getElementById('downloadModal'));
+                modalInstance.hide();
+            });
+        });
     </script>
+    <!-- Modal for Download Options -->
+    <div class="modal fade" id="downloadModal" tabindex="-1" aria-labelledby="downloadModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="downloadModalLabel">Descargar Datos</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body text-center">
+            <p>Seleccione el formato de descarga:</p>
+            <button id="downloadCSV" class="btn btn-primary mx-2">CSV</button>
+            <button id="downloadXLSX" class="btn btn-success mx-2">XLSX</button>
+          </div>
+        </div>
+      </div>
+    </div>
 </body>
 </html>
