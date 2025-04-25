@@ -63,4 +63,4 @@ with get_db_connection() as conn:
             password_hash TEXT NOT NULL
         );
     ''')
-    conn.commit()
+    conn.commit() 
