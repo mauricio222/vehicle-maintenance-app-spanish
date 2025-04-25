@@ -3,393 +3,928 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrar Mantenimiento</title>
+    <title>Sistema de Mantenimiento</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        .form-section {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .suggestion-item {
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 4px;
-        }
-        .suggestion-item:hover {
-            background-color: #f0f0f0;
-        }
-    </style>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">Sistema de Mantenimiento</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="{{ url_for('registro') }}">Registrar Mantenimiento</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('logout') }}">Cerrar Sesión</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
     <div class="container mt-4">
-        <h2 class="mb-4">Registrar Nuevo Mantenimiento</h2>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Registro de Mantenimiento</h1>
+            <div>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Volver</a>
+                {% if g.user %}
+                    <a href="{{ url_for('logout') }}" class="btn btn-danger ms-2">Cerrar Sesión ({{ g.user.username }})</a>
+                {% endif %}
+            </div>
+        </div>
 
-        <form id="mantenimientoForm" onsubmit="return guardarMantenimiento(event)">
-            <div class="form-section">
-                <h4 class="mb-3">Información Básica</h4>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="vehiculo" class="form-label">Vehículo</label>
-                        <select class="form-select" id="vehiculo" required onchange="cargarTiposMantenimiento()">
-                            <option value="">Seleccione un vehículo</option>
-                            {% for v in vehiculos %}
-                            <option value="{{ v.id }}" data-detalle-id="{{ v.detalle_id }}">{{ v.alias }} - {{ v.marca }} {{ v.modelo }} {{ v.anio }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="fecha" class="form-label">Fecha</label>
-                        <input type="date" class="form-control" id="fecha" required>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="kilometraje" class="form-label">Kilometraje</label>
-                        <input type="number" class="form-control" id="kilometraje" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="precio" class="form-label">Precio</label>
-                        <div class="input-group">
-                            <span class="input-group-text">₡</span>
-                            <input type="number" class="form-control" id="precio" step="0.01" required>
+        <!-- Contenedor de mensajes -->
+        <div id="mensajeContainer" style="display: none;" class="alert alert-dismissible fade show mb-3" role="alert">
+            <span id="mensajeTexto"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- Formulario principal -->
+        <div class="card">
+            <div class="card-body">
+                <form id="mantenimientoForm">
+                    <!-- Bloque 1: Vehículo, Fecha y Kilometraje -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-3">Información del Vehículo</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="vehiculo" class="form-label">Vehículo</label>
+                                        <select class="form-select" id="vehiculo" name="vehiculo" required data-placeholder="Seleccione un vehículo">
+                                            <option></option>
+                                            {% for vehiculo in vehiculos %}
+                                            <option value="{{ vehiculo.id }}">
+                                                {{ vehiculo.alias }} - {{ vehiculo.marca }} {{ vehiculo.modelo }} ({{ vehiculo.anio }})
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="fecha" class="form-label">Fecha</label>
+                                        <input type="text" class="form-control" id="fecha"
+                                               name="fecha" placeholder="dd/mm/yyyy" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="kilometraje" class="form-label">Kilometraje</label>
+                                        <input type="text" class="form-control" id="kilometraje"
+                                               name="kilometraje"
+                                               pattern="[0-9]*" inputmode="numeric" required
+                                               oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="form-section">
-                <h4 class="mb-3">Tipo de Mantenimiento</h4>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="categoria" class="form-label">Categoría</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="categoria" required>
-                            <button class="btn btn-outline-secondary" type="button" onclick="sugerirCategoria()">
-                                <i class="bi bi-lightbulb"></i>
-                            </button>
-                        </div>
-                        <div id="categoriaSuggestions" class="mt-2"></div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="tipo_mantenimiento" class="form-label">Tipo de Mantenimiento</label>
-                        <div class="input-group">
-                            <select class="form-select" id="tipo_mantenimiento">
-                                <option value="">Seleccione un tipo</option>
-                            </select>
-                            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#nuevoTipoModal">
-                                <i class="bi bi-plus-circle"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-section">
-                <h4 class="mb-3">Mecánico</h4>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="mecanico" class="form-label">Seleccionar Mecánico</label>
-                        <div class="input-group">
-                            <select class="form-select" id="mecanico" required>
-                                <option value="">Seleccione un mecánico</option>
-                                {% for m in mecanicos %}
-                                <option value="{{ m.id }}">{{ m.nombre_mecanico }}</option>
-                                {% endfor %}
-                            </select>
-                            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#nuevoMecanicoModal">
-                                <i class="bi bi-plus-circle"></i>
-                            </button>
+                    <!-- Bloque 2: Mecánico -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="card-subtitle mb-0">Información del Mecánico</h6>
+                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#mecanicoModal">
+                                    Agregar Mecánico
+                                </button>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="mecanico" class="form-label">Mecánico</label>
+                                        <select class="form-select select2" id="mecanico" name="mecanico" required>
+                                            <option value="">Seleccione un mecánico</option>
+                                            {% for mecanico in mecanicos %}
+                                            <option value="{{ mecanico.id }}" data-telefono="{{ mecanico.telefono_mecanico }}">
+                                                {{ mecanico.nombre_mecanico }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="telefonoMecanico" class="form-label">Teléfono</label>
+                                        <input type="text" class="form-control" id="telefonoMecanico"
+                                               name="telefonoMecanico"
+                                               inputmode="numeric" required
+                                               placeholder="Ingrese número de teléfono"
+                                               oninput="this.value = this.value.replace(/[^0-9]/g, ''); this.setCustomValidity('');">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="form-section">
-                <h4 class="mb-3">Próximo Mantenimiento</h4>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="fecha_proximo" class="form-label">Fecha Próximo Mantenimiento</label>
-                        <input type="date" class="form-control" id="fecha_proximo">
+                    <!-- Bloque 3: Tipo de Mantenimiento -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="card-subtitle mb-0">Información del Mantenimiento</h6>
+                                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#tipoMantenimientoModal">
+                                    Agregar Tipo de Mantenimiento
+                                </button>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="tipoMantenimiento" class="form-label">Tipo de Mantenimiento</label>
+                                        <select class="form-select select2" id="tipoMantenimiento" name="tipoMantenimiento" required>
+                                            <option value="">Seleccione un tipo de mantenimiento</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label for="categoria" class="form-label">Categoría</label>
+                                        <input type="text" class="form-control" id="categoria" name="categoria" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label for="proximoKm" class="form-label">Próximo (km)</label>
+                                        <input type="number" class="form-control" id="proximoKm" name="proximoKm" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label for="proximoMeses" class="form-label">Próximo (meses)</label>
+                                        <input type="number" class="form-control" id="proximoMeses" name="proximoMeses" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label for="precio" class="form-label">Precio</label>
+                                        <input type="number" class="form-control" id="precio" name="precio" min="0" step="any"
+                                               style="-moz-appearance: textfield; -webkit-appearance: textfield; appearance: textfield;" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                <button type="button" class="btn btn-secondary me-md-2" onclick="window.history.back()">Cancelar</button>
-                <button type="submit" class="btn btn-primary">Guardar Mantenimiento</button>
+                    <button type="submit" class="btn btn-primary btn-lg w-100">Guardar Mantenimiento</button>
+                </form>
             </div>
-        </form>
+        </div>
     </div>
 
-    <!-- Modal Nuevo Tipo de Mantenimiento -->
-    <div class="modal fade" id="nuevoTipoModal" tabindex="-1">
+    <!-- Modal Mecánico -->
+    <div class="modal fade" id="mecanicoModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Nuevo Tipo de Mantenimiento</h5>
+                    <h5 class="modal-title">Agregar Nuevo Mecánico</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="nuevoTipoForm">
+                    <!-- Contenedor de mensajes del modal -->
+                    <div id="modalMensajeContainer" style="display: none;" class="alert alert-danger mb-3">
+                        <span id="modalMensajeTexto"></span>
+                    </div>
+                    <form id="mecanicoForm">
                         <div class="mb-3">
-                            <label for="nombre_tipo" class="form-label">Nombre</label>
-                            <input type="text" class="form-control" id="nombre_tipo" required>
+                            <label for="nombreMecanico" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombreMecanico" name="nombreMecanico" required>
                         </div>
                         <div class="mb-3">
-                            <label for="categoria_tipo" class="form-label">Categoría</label>
-                            <input type="text" class="form-control" id="categoria_tipo" required>
+                            <label for="telefonoMecanico" class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" id="telefonoMecanico"
+                                   name="telefonoMecanico"
+                                   inputmode="numeric" required
+                                   placeholder="Ingrese número de teléfono"
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, ''); this.setCustomValidity('');">
                         </div>
-                        <div class="mb-3">
-                            <label for="kilometros" class="form-label">Kilómetros para Próximo Mantenimiento</label>
-                            <input type="number" class="form-control" id="kilometros">
-                        </div>
-                        <div class="mb-3">
-                            <label for="meses" class="form-label">Meses para Próximo Mantenimiento</label>
-                            <input type="number" class="form-control" id="meses">
-                        </div>
+                        <button type="submit" class="btn btn-primary" name="submitMecanico">Guardar</button>
                     </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="agregarTipoMantenimiento()">Guardar</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Nuevo Mecánico -->
-    <div class="modal fade" id="nuevoMecanicoModal" tabindex="-1">
+    <!-- Modal Tipo de Mantenimiento -->
+    <div class="modal fade" id="tipoMantenimientoModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Nuevo Mecánico</h5>
+                    <h5 class="modal-title">Agregar Nuevo Tipo de Mantenimiento</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="nuevoMecanicoForm">
+                    <!-- Contenedor de mensajes del modal -->
+                    <div id="tipoMantenimientoMensajeContainer" style="display: none;" class="alert alert-danger mb-3">
+                        <span id="tipoMantenimientoMensajeTexto"></span>
+                    </div>
+                    <form id="tipoMantenimientoForm">
                         <div class="mb-3">
-                            <label for="nombre_mecanico" class="form-label">Nombre</label>
-                            <input type="text" class="form-control" id="nombre_mecanico" required>
+                            <label for="nombreTipo" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" name="nombre" id="nombreTipo" required>
                         </div>
                         <div class="mb-3">
-                            <label for="telefono_mecanico" class="form-label">Teléfono</label>
-                            <input type="tel" class="form-control" id="telefono_mecanico">
+                            <label for="kilometros" class="form-label">Kilómetros próximo mantenimiento</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" name="kilometros" id="kilometros"
+                                       pattern="[0-9]*" inputmode="numeric"
+                                       oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                <button type="button" class="btn btn-outline-primary" onclick="sugerirConIA('kilometros')">
+                                    Agregar con IA
+                                </button>
+                            </div>
                         </div>
+                        <div class="mb-3">
+                            <label for="meses" class="form-label">Meses próximo mantenimiento</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" name="meses" id="meses"
+                                       pattern="[0-9]*" inputmode="numeric"
+                                       oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                <button type="button" class="btn btn-outline-primary" onclick="sugerirConIA('meses')">
+                                    Agregar con IA
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="categoriaTipo" class="form-label">Categoría</label>
+                            <div class="input-group">
+                                <select class="form-select" name="categoria" id="categoriaTipo" required>
+                                    <option value="">Seleccione una categoría</option>
+                                    <option value="Motor">Motor</option>
+                                    <option value="Frenos">Frenos</option>
+                                    <option value="Transmisión">Transmisión</option>
+                                    <option value="Suspensión">Suspensión</option>
+                                    <option value="Eléctrico">Eléctrico</option>
+                                    <option value="Llantas">Llantas</option>
+                                    <option value="Carrocería">Carrocería</option>
+                                    <option value="Refrigeración">Refrigeración</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-primary" onclick="sugerirCategoriaIA()">
+                                    Seleccionar con IA
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" name="submitTipoMantenimiento">Guardar</button>
                     </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="agregarMecanico()">Guardar</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+
     <script>
-        // Set today's date as default
-        document.getElementById('fecha').valueAsDate = new Date();
+        // Move the function outside the document ready handler
+        window.sugerirConIA = function(tipo) {
+            const nombreTipo = $('#nombreTipo').val();
+            const vehiculoId = $('#vehiculo').val();
 
-        function cargarTiposMantenimiento() {
-            const vehiculoId = document.getElementById('vehiculo').value;
-            if (!vehiculoId) return;
-
-            fetch(`/get_tipos_mantenimiento/${vehiculoId}`)
-                .then(response => response.json())
-                .then(data => {
-                    const select = document.getElementById('tipo_mantenimiento');
-                    select.innerHTML = '<option value="">Seleccione un tipo</option>';
-                    data.tipos.forEach(tipo => {
-                        const option = document.createElement('option');
-                        option.value = tipo.id;
-                        option.textContent = tipo.nombre;
-                        select.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Error:', error));
-        }
-
-        function agregarTipoMantenimiento() {
-            const vehiculoSelect = document.getElementById('vehiculo');
-            const vehiculoId = vehiculoSelect.value;
-            const detalleId = vehiculoSelect.options[vehiculoSelect.selectedIndex].dataset.detalleId;
-
-            const formData = {
-                nombre: document.getElementById('nombre_tipo').value,
-                categoria: document.getElementById('categoria_tipo').value,
-                kilometros: document.getElementById('kilometros').value || null,
-                meses: document.getElementById('meses').value || null,
-                vehiculo_id: vehiculoId
-            };
-
-            fetch('/agregar_tipo_mantenimiento', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams(formData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('nuevoTipoModal'));
-                    modal.hide();
-                    cargarTiposMantenimiento();
-                    document.getElementById('nuevoTipoForm').reset();
-                } else {
-                    alert(data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error al procesar la solicitud');
-            });
-        }
-
-        function agregarMecanico() {
-            const formData = {
-                nombre: document.getElementById('nombre_mecanico').value,
-                telefono: document.getElementById('telefono_mecanico').value
-            };
-
-            fetch('/agregar_mecanico', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams(formData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('nuevoMecanicoModal'));
-                    modal.hide();
-                    
-                    // Add new mechanic to select
-                    const select = document.getElementById('mecanico');
-                    const option = document.createElement('option');
-                    option.value = data.mecanico.id;
-                    option.textContent = data.mecanico.nombre;
-                    select.appendChild(option);
-                    select.value = data.mecanico.id;
-
-                    document.getElementById('nuevoMecanicoForm').reset();
-                } else {
-                    alert(data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error al procesar la solicitud');
-            });
-        }
-
-        function sugerirCategoria() {
-            const descripcion = document.getElementById('tipo_mantenimiento').options[
-                document.getElementById('tipo_mantenimiento').selectedIndex
-            ].text;
-
-            if (!descripcion) {
-                alert('Por favor, seleccione o ingrese un tipo de mantenimiento primero.');
+            if (!vehiculoId) {
+                alert('Debe seleccionar un vehículo antes de agregar un tipo de mantenimiento');
+                $('#vehiculo').closest('.mb-3').addClass('was-validated');
+                $('#vehiculo').siblings('.select2').find('.select2-selection')
+                              .css('border-color', '#dc3545')
+                              .attr('aria-invalid', true);
                 return;
             }
 
-            fetch('/sugerir_categoria', {
+            if (!nombreTipo) {
+                alert('Por favor ingrese el nombre del tipo de mantenimiento primero');
+                return;
+            }
+
+            const button = $(`button:contains('Agregar con IA')[onclick*="${tipo}"]`);
+            const originalText = button.html();
+            button.html('<span class="spinner-border spinner-border-sm" role="status"></span> Cargando...');
+
+            $.ajax({
+                url: '/sugerir_mantenimiento',
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+                contentType: 'application/json',
+                dataType: 'json',
+                data: JSON.stringify({
+                    tipo_mantenimiento: nombreTipo,
+                    campo: tipo,
+                    vehiculo_id: vehiculoId
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        const valor = parseInt(response.sugerencia);
+                        if (!isNaN(valor)) {
+                            $(`#${tipo}`).val(valor).trigger('input');
+                        } else {
+                            alert('La IA devolvió un valor no numérico: ' + response.sugerencia);
+                        }
+                    } else {
+                        alert('Error: ' + response.error);
+                    }
                 },
-                body: JSON.stringify({ descripcion: descripcion })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const suggestionsDiv = document.getElementById('categoriaSuggestions');
-                    suggestionsDiv.innerHTML = '';
-                    
-                    data.sugerencias.forEach(sugerencia => {
-                        const div = document.createElement('div');
-                        div.className = 'suggestion-item';
-                        div.textContent = sugerencia;
-                        div.onclick = () => {
-                            document.getElementById('categoria').value = sugerencia;
-                            suggestionsDiv.innerHTML = '';
-                        };
-                        suggestionsDiv.appendChild(div);
-                    });
-                } else {
-                    alert(data.error);
+                error: function(xhr) {
+                    alert('Error al conectar con el servidor: ' + xhr.statusText);
+                },
+                complete: function() {
+                    button.html(originalText);
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error al procesar la solicitud');
             });
-        }
+        };
 
-        function guardarMantenimiento(event) {
-            event.preventDefault();
+        window.sugerirCategoriaIA = function() {
+            const nombreTipo = $('#nombreTipo').val();
+            const vehiculoId = $('#vehiculo').val();
 
-            const formData = {
-                vehiculo_id: document.getElementById('vehiculo').value,
-                fecha: document.getElementById('fecha').value,
-                kilometraje: document.getElementById('kilometraje').value,
-                precio: document.getElementById('precio').value,
-                tipo_mantenimiento_id: document.getElementById('tipo_mantenimiento').value,
-                categoria: document.getElementById('categoria').value,
-                mecanico_id: document.getElementById('mecanico').value,
-                fecha_proximo: document.getElementById('fecha_proximo').value || null
+            if (!vehiculoId) {
+                alert('Debe seleccionar un vehículo antes de sugerir categoría');
+                $('#vehiculo').closest('.mb-3').addClass('was-validated');
+                $('#vehiculo').siblings('.select2').find('.select2-selection')
+                              .css('border-color', '#dc3545')
+                              .attr('aria-invalid', true);
+                return;
+            }
+
+            if (!nombreTipo) {
+                alert('Por favor ingrese el nombre del tipo de mantenimiento primero');
+                return;
+            }
+
+            const button = $('button:contains("Seleccionar con IA")');
+            const originalText = button.html();
+            button.html('<span class="spinner-border spinner-border-sm" role="status"></span> Cargando...');
+
+            $.ajax({
+                url: '/sugerir_categoria',
+                method: 'POST',
+                contentType: 'application/json',
+                dataType: 'json',
+                data: JSON.stringify({
+                    tipo_mantenimiento: nombreTipo,
+                    vehiculo_id: vehiculoId
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        const categoria = response.categoria;
+                        const select = $('#categoriaTipo');
+
+                        // Buscar opción existente
+                        const option = select.find(`option[value="${categoria}"]`);
+                        if (option.length > 0) {
+                            select.val(categoria).trigger('change');
+                        } else {
+                            // Agregar nueva opción si no existe
+                            select.append($('<option>', {
+                                value: categoria,
+                                text: categoria
+                            })).val(categoria).trigger('change');
+                        }
+                    } else {
+                        alert('Error: ' + response.error);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Error al conectar con el servidor: ' + xhr.statusText);
+                },
+                complete: function() {
+                    button.html(originalText);
+                }
+            });
+        };
+
+        $(document).ready(function() {
+            // Inicializar Flatpickr para el campo de fecha
+            flatpickr("#fecha", {
+                locale: "es",
+                dateFormat: "d/m/Y",
+                maxDate: "today",
+                allowInput: true,
+                enableTime: false,
+                appendTo: document.getElementById('fecha').parentNode
+            });
+
+            // Personalizar mensajes de validación para todos los campos requeridos
+            const campos = {
+                'vehiculo': 'Por favor seleccione un vehículo',
+                'fecha': 'Por favor ingrese una fecha válida',
+                'kilometraje': 'Por favor ingrese el kilometraje',
+                'mecanico': 'Por favor seleccione un mecánico',
+                'tipoMantenimiento': 'Por favor seleccione un tipo de mantenimiento',
+                'nombreMecanico': 'Por favor ingrese el nombre del mecánico',
+                'telefonoMecanico': {
+                    valueMissing: 'Por favor ingrese un número de teléfono',
+                    patternMismatch: 'El teléfono debe tener exactamente 8 dígitos'
+                },
+                'nombreTipo': 'Por favor ingrese el nombre del tipo de mantenimiento',
+                'categoriaTipo': 'Por favor seleccione una categoría',
+                'precio': 'Por favor ingrese el precio del mantenimiento'
             };
 
-            fetch('/guardar_mantenimiento', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = `/mantenimientos/${formData.vehiculo_id}`;
-                } else {
-                    alert(data.error);
+            // Función para configurar mensajes de validación personalizados
+            function configurarValidacion(elementId, mensaje) {
+                const elemento = document.getElementById(elementId);
+                if (elemento) {
+                    elemento.oninvalid = function(e) {
+                        e.target.setCustomValidity('');
+                        if (!e.target.validity.valid) {
+                            if (typeof mensaje === 'object') {
+                                // Si hay diferentes mensajes para diferentes tipos de error
+                                if (e.target.validity.valueMissing) {
+                                    e.target.setCustomValidity(mensaje.valueMissing);
+                                } else if (e.target.validity.patternMismatch) {
+                                    e.target.setCustomValidity(mensaje.patternMismatch);
+                                }
+                            } else {
+                                e.target.setCustomValidity(mensaje);
+                            }
+                        }
+                    };
+                    elemento.oninput = function(e) {
+                        e.target.setCustomValidity('');
+                    };
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error al procesar la solicitud');
+            }
+
+            // Configurar mensajes para cada campo
+            Object.keys(campos).forEach(id => configurarValidacion(id, campos[id]));
+
+            // Configurar Select2 para mostrar mensajes en español
+            const select2Mensajes = {
+                'mecanico': 'Por favor seleccione un mecánico',
+                'tipoMantenimiento': 'Por favor seleccione un tipo de mantenimiento'
+            };
+
+            Object.keys(select2Mensajes).forEach(id => {
+                $(`#${id}`).on('select2:open', function() {
+                    $(this).siblings('.select2').find('.select2-selection').attr('aria-invalid', false);
+                });
             });
 
-            return false;
-        }
+            $('#mantenimientoForm, #mecanicoForm, #tipoMantenimientoForm').on('submit', function(e) {
+                Object.keys(select2Mensajes).forEach(id => {
+                    const elemento = $(`#${id}`);
+                    if (elemento.length && !elemento.val()) {
+                        elemento.siblings('.select2').find('.select2-selection').attr('aria-invalid', true);
+                    }
+                });
+            });
+
+            // Inicializar Select2 para mecánico y tipo de mantenimiento
+            $('#mecanico, #tipoMantenimiento').select2({
+                width: '100%',
+                placeholder: 'Seleccione una opción',
+                language: {
+                    noResults: function() {
+                        return "No se encontraron resultados";
+                    },
+                    errorLoading: function() {
+                        return "Error al cargar los resultados";
+                    },
+                    searching: function() {
+                        return "Buscando...";
+                    },
+                    inputTooShort: function() {
+                        return "Por favor ingrese más caracteres";
+                    },
+                    inputTooLong: function() {
+                        return "Por favor ingrese menos caracteres";
+                    },
+                    loadingMore: function() {
+                        return "Cargando más resultados...";
+                    },
+                    maximumSelected: function() {
+                        return "Solo puede seleccionar un elemento";
+                    }
+                }
+            });
+
+            // Inicializar Select2 para vehículo con configuración específica
+            $('#vehiculo').select2({
+                width: '100%',
+                placeholder: $(this).data('placeholder'),
+                allowClear: false,
+                language: {
+                    noResults: function() {
+                        return "No se encontraron resultados";
+                    },
+                    errorLoading: function() {
+                        return "Error al cargar los resultados";
+                    },
+                    searching: function() {
+                        return "Buscando...";
+                    },
+                    inputTooShort: function() {
+                        return "Por favor ingrese más caracteres";
+                    },
+                    inputTooLong: function() {
+                        return "Por favor ingrese menos caracteres";
+                    },
+                    loadingMore: function() {
+                        return "Cargando más resultados...";
+                    },
+                    maximumSelected: function() {
+                        return "Solo puede seleccionar un elemento";
+                    }
+                }
+            });
+
+            // Personalizar mensaje de validación para el campo vehículo
+            $('#vehiculo').on('select2:open', function() {
+                $('#vehiculo').siblings('.select2').find('.select2-selection').attr('aria-invalid', false);
+            });
+
+            $('#mantenimientoForm').on('submit', function(e) {
+                e.preventDefault();
+
+                // Prevenir múltiples envíos
+                const submitButton = $(this).find('button[type="submit"]');
+                if (submitButton.prop('disabled')) {
+                    return;
+                }
+                submitButton.prop('disabled', true);
+
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    $(this).addClass('was-validated');
+                    submitButton.prop('disabled', false);
+                    return;
+                }
+
+                // Convertir fecha de dd/mm/yyyy a yyyy-mm-dd para el backend
+                const fecha = $('#fecha').val();
+                const fechaPartes = fecha.split('/');
+                const fechaISO = `${fechaPartes[2]}-${fechaPartes[1].padStart(2, '0')}-${fechaPartes[0].padStart(2, '0')}`;
+
+                // Recolectar datos del formulario
+                const formData = {
+                    vehiculo_id: $('#vehiculo').val(),
+                    fecha: fechaISO,
+                    kilometraje: $('#kilometraje').val(),
+                    mecanico_id: $('#mecanico').val(),
+                    tipo_mantenimiento_id: $('#tipoMantenimiento').val(),
+                    precio: $('#precio').val()
+                };
+
+                // Enviar datos al servidor
+                $.ajax({
+                    url: '/guardar_mantenimiento',
+                    method: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        if (response.success) {
+                            // Mostrar mensaje de éxito
+                            mostrarMensaje('¡Mantenimiento guardado exitosamente!', true);
+
+                            // Redireccionar a la página de mantenimientos del vehículo
+                            window.location.href = '/mantenimientos/' + formData.vehiculo_id;
+                        } else {
+                            // Mostrar mensaje de error
+                            mostrarMensaje('Error: ' + response.error, false);
+                        }
+                        // Reactivar el botón después de la respuesta
+                        submitButton.prop('disabled', false);
+                    },
+                    error: function() {
+                        mostrarMensaje('Error al conectar con el servidor', false);
+                        // Reactivar el botón en caso de error
+                        submitButton.prop('disabled', false);
+                    }
+                });
+            });
+
+            // Manejar el envío del formulario de tipo de mantenimiento
+            $('#tipoMantenimientoForm').on('submit', function(e) {
+                e.preventDefault();
+
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    $(this).addClass('was-validated');
+                    return;
+                }
+
+                // Obtener el detalle_id del vehículo seleccionado
+                const vehiculoId = $('#vehiculo').val();
+                if (!vehiculoId) {
+                    mostrarMensaje('Debe seleccionar un vehículo antes de agregar un tipo de mantenimiento', false);
+                    $('#tipoMantenimientoModal').modal('hide');
+                    return;
+                }
+
+                // Recolectar datos del formulario
+                const formData = {
+                    nombre: $('#tipoMantenimientoForm [name="nombre"]').val(),
+                    kilometros: $('#tipoMantenimientoForm [name="kilometros"]').val(),
+                    meses: $('#tipoMantenimientoForm [name="meses"]').val(),
+                    categoria: $('#tipoMantenimientoForm [name="categoria"]').val(),
+                    vehiculo_id: vehiculoId
+                };
+
+                // Enviar datos al servidor
+                $.ajax({
+                    url: '/agregar_tipo_mantenimiento',
+                    method: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        if (response.success) {
+                            // Mostrar mensaje de éxito
+                            mostrarMensaje('¡Tipo de mantenimiento agregado exitosamente!', true);
+
+                            // Cerrar modal y limpiar formulario
+                            $('#tipoMantenimientoModal').modal('hide');
+                            $('#tipoMantenimientoForm')[0].reset();
+
+                            // Actualizar lista de tipos de mantenimiento y seleccionar el nuevo
+                            $.get('/get_tipos_mantenimiento/' + vehiculoId + '?nuevo_tipo_id=' + response.nuevo_tipo_id, function(response) {
+                                if (response.success) {
+                                    // Actualizar el select de tipos de mantenimiento
+                                    const tipoSelect = $('#tipoMantenimiento');
+                                    tipoSelect.empty().append('<option value="">Seleccione un tipo de mantenimiento</option>');
+
+                                    // Agrupar por categoría
+                                    const tiposPorCategoria = {};
+                                    response.tipos.forEach(tipo => {
+                                        if (!tiposPorCategoria[tipo.categoria]) {
+                                            tiposPorCategoria[tipo.categoria] = [];
+                                        }
+                                        tiposPorCategoria[tipo.categoria].push(tipo);
+                                    });
+
+                                    // Crear optgroups por categoría
+                                    Object.keys(tiposPorCategoria).sort().forEach(categoria => {
+                                        const optgroup = $('<optgroup>').attr('label', categoria);
+                                        tiposPorCategoria[categoria].forEach(tipo => {
+                                            optgroup.append(new Option(tipo.nombre, tipo.id));
+                                        });
+                                        tipoSelect.append(optgroup);
+                                    });
+
+                                    // Seleccionar el nuevo tipo de mantenimiento
+                                    tipoSelect.val(response.nuevo_tipo_id).trigger('change');
+
+                                    // Populate the main form with the new type's information
+                                    $('#categoria').val(formData.categoria);
+                                    $('#proximoKm').val(formData.kilometros || '');
+                                    $('#proximoMeses').val(formData.meses || '');
+                                }
+                            });
+                        } else {
+                            // Mostrar mensaje de error en el modal
+                            mostrarMensajeTipoMantenimiento(response.error);
+                        }
+                    },
+                    error: function() {
+                        mostrarMensajeTipoMantenimiento('Error al conectar con el servidor');
+                    }
+                });
+            });
+
+            // Manejar el envío del formulario de mecánico
+            $('#mecanicoForm').on('submit', function(e) {
+                e.preventDefault();
+
+                const telefonoInput = $('#mecanicoForm #telefonoMecanico')[0];
+                const telefono = telefonoInput.value;
+
+                // Validar el teléfono
+                if (!telefono) {
+                    telefonoInput.setCustomValidity('Por favor ingrese un número de teléfono');
+                    $(this).addClass('was-validated');
+                    return;
+                } else if (telefono.length !== 8 || !/^\d+$/.test(telefono)) {
+                    telefonoInput.setCustomValidity('El teléfono debe tener exactamente 8 dígitos numéricos');
+                    $(this).addClass('was-validated');
+                    return;
+                }
+
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    $(this).addClass('was-validated');
+                    return;
+                }
+
+                // Recolectar datos del formulario
+                const formData = {
+                    nombre: $('#nombreMecanico').val(),
+                    telefono: $('#mecanicoForm #telefonoMecanico').val()
+                };
+
+                // Enviar datos al servidor
+                $.ajax({
+                    url: '/agregar_mecanico',
+                    method: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        if (response.success) {
+                            // Mostrar mensaje de éxito en la página principal
+                            mostrarMensaje('¡Mecánico agregado exitosamente!', true);
+
+                            // Agregar el nuevo mecánico al select
+                            const mecanicoSelect = $('#mecanico');
+                            const nuevaOpcion = new Option(
+                                response.mecanico.nombre,
+                                response.mecanico.id,
+                                true,
+                                true
+                            );
+                            $(nuevaOpcion).data('telefono', response.mecanico.telefono);
+                            mecanicoSelect.append(nuevaOpcion).trigger('change');
+
+                            // Auto-popular el teléfono
+                            $('#telefonoMecanico').val(response.mecanico.telefono);
+
+                            // Cerrar modal y limpiar formulario
+                            $('#mecanicoModal').modal('hide');
+                            $('#mecanicoForm')[0].reset();
+                        } else {
+                            // Mostrar mensaje de error en el modal
+                            const mensaje = response.error.includes('Ya existe un mecánico')
+                                ? response.error
+                                : 'Error al agregar mecánico: ' + response.error;
+                            mostrarMensajeModal(mensaje);
+                        }
+                    },
+                    error: function() {
+                        mostrarMensajeModal('Error al conectar con el servidor');
+                    }
+                });
+            });
+
+            // Validar entrada de kilometraje
+            $('#kilometraje').on('keypress', function(e) {
+                // Permitir solo números (códigos de tecla 48-57)
+                if (e.which < 48 || e.which > 57) {
+                    e.preventDefault();
+                }
+            });
+
+            // Limpiar cualquier carácter no numérico en caso de pegar texto
+            $('#kilometraje').on('paste', function(e) {
+                e.preventDefault();
+                const text = (e.originalEvent.clipboardData || window.clipboardData).getData('text');
+                const numbers = text.replace(/[^0-9]/g, '');
+                $(this).val(numbers);
+            });
+
+            // Validar entrada de teléfono del mecánico
+            $('#mecanicoForm #telefonoMecanico').on('keypress', function(e) {
+                // Permitir solo números (códigos de tecla 48-57)
+                if (e.which < 48 || e.which > 57) {
+                    e.preventDefault();
+                }
+                // Limitar a 8 dígitos
+                if (this.value.length >= 8) {
+                    e.preventDefault();
+                }
+            });
+
+            // Limpiar cualquier carácter no numérico en caso de pegar texto
+            $('#mecanicoForm #telefonoMecanico').on('paste', function(e) {
+                e.preventDefault();
+                const text = (e.originalEvent.clipboardData || window.clipboardData).getData('text');
+                const numbers = text.replace(/[^0-9]/g, '').substring(0, 8);
+                $(this).val(numbers);
+            });
+
+            // Validar entrada de kilómetros y meses
+            $('#kilometros, #meses').on('keypress', function(e) {
+                // Permitir solo números (códigos de tecla 48-57)
+                if (e.which < 48 || e.which > 57) {
+                    e.preventDefault();
+                }
+            });
+
+            // Limpiar cualquier carácter no numérico en caso de pegar texto
+            $('#kilometros, #meses').on('paste', function(e) {
+                e.preventDefault();
+                const text = (e.originalEvent.clipboardData || window.clipboardData).getData('text');
+                const numbers = text.replace(/[^0-9]/g, '');
+                $(this).val(numbers);
+            });
+
+            // Auto-poblar teléfono del mecánico
+            $('#mecanico').on('change', function() {
+                const telefono = $(this).find(':selected').data('telefono') || '';
+                $('#telefonoMecanico').val(telefono);
+            });
+
+            // Actualizar tipos de mantenimiento al seleccionar vehículo
+            $('#vehiculo').on('change', function() {
+                const vehiculoId = $(this).val();
+                const tipoSelect = $('#tipoMantenimiento');
+
+                // Limpiar y deshabilitar el select de tipos
+                tipoSelect.empty().append('<option value="">Seleccione un tipo de mantenimiento</option>').prop('disabled', true);
+
+                if (vehiculoId) {
+                    // Obtener tipos de mantenimiento para el vehículo seleccionado
+                    $.get('/get_tipos_mantenimiento/' + vehiculoId, function(response) {
+                        if (response.success) {
+                            // Agrupar por categoría
+                            const tiposPorCategoria = {};
+                            response.tipos.forEach(tipo => {
+                                if (!tiposPorCategoria[tipo.categoria]) {
+                                    tiposPorCategoria[tipo.categoria] = [];
+                                }
+                                tiposPorCategoria[tipo.categoria].push(tipo);
+                            });
+
+                            // Crear optgroups por categoría
+                            Object.keys(tiposPorCategoria).sort().forEach(categoria => {
+                                const optgroup = $('<optgroup>').attr('label', categoria);
+                                tiposPorCategoria[categoria].forEach(tipo => {
+                                    optgroup.append(new Option(tipo.nombre, tipo.id));
+                                });
+                                tipoSelect.append(optgroup);
+                            });
+
+                            // Habilitar el select
+                            tipoSelect.prop('disabled', false);
+                        }
+                    });
+                }
+
+                // Actualizar Select2
+                tipoSelect.trigger('change');
+            });
+
+            // Auto-poblar información del tipo de mantenimiento
+            $('#tipoMantenimiento').on('change', function() {
+                const tipoId = $(this).val();
+                if (tipoId) {
+                    $.get('/get_tipo_mantenimiento/' + tipoId, function(response) {
+                        if (response.success) {
+                            $('#categoria').val(response.tipo.categoria);
+                            $('#proximoKm').val(response.tipo.kilometros_proximo_mantenimiento);
+                            $('#proximoMeses').val(response.tipo.meses_proximo_mantenimiento);
+                        }
+                    });
+                } else {
+                    $('#categoria').val('');
+                    $('#proximoKm').val('');
+                    $('#proximoMeses').val('');
+                }
+            });
+
+            // Función para mostrar mensaje
+            function mostrarMensaje(mensaje, esExito) {
+                const container = $('#mensajeContainer');
+                const texto = $('#mensajeTexto');
+
+                container.removeClass('alert-success alert-danger')
+                        .addClass(esExito ? 'alert-success' : 'alert-danger');
+                texto.text(mensaje);
+                container.show();
+
+                // Ocultar mensaje después de 5 segundos
+                setTimeout(() => {
+                    container.fadeOut();
+                }, 5000);
+            }
+
+            // Función para mostrar mensaje en el modal
+            function mostrarMensajeModal(mensaje) {
+                const container = $('#modalMensajeContainer');
+                const texto = $('#modalMensajeTexto');
+                texto.text(mensaje);
+                container.show();
+            }
+
+            // Función para ocultar mensaje del modal
+            function ocultarMensajeModal() {
+                $('#modalMensajeContainer').hide();
+            }
+
+            // Limpiar mensaje al abrir el modal
+            $('#mecanicoModal').on('show.bs.modal', function() {
+                ocultarMensajeModal();
+            });
+
+            // Función para mostrar mensaje en el modal de tipo de mantenimiento
+            function mostrarMensajeTipoMantenimiento(mensaje) {
+                const container = $('#tipoMantenimientoMensajeContainer');
+                const texto = $('#tipoMantenimientoMensajeTexto');
+                texto.text(mensaje);
+                container.show();
+            }
+
+            // Función para ocultar mensaje del modal de tipo de mantenimiento
+            function ocultarMensajeTipoMantenimiento() {
+                $('#tipoMantenimientoMensajeContainer').hide();
+            }
+
+            // Limpiar mensaje al abrir el modal de tipo de mantenimiento
+            $('#tipoMantenimientoModal').on('show.bs.modal', function() {
+                ocultarMensajeTipoMantenimiento();
+            });
+
+            // Update the input validation for precio
+            $('#precio').on('keypress', function(e) {
+                // Allow only numbers and one decimal point
+                if ((e.which < 48 || e.which > 57) && e.which !== 46) {
+                    e.preventDefault();
+                }
+                // Ensure only one decimal point
+                if (e.which === 46 && $(this).val().indexOf('.') !== -1) {
+                    e.preventDefault();
+                }
+            });
+
+            // Update paste handling for precio
+            $('#precio').on('paste', function(e) {
+                e.preventDefault();
+                const text = (e.originalEvent.clipboardData || window.clipboardData).getData('text');
+                // Replace any non-numeric or non-decimal characters, ensure only one decimal point
+                const cleanedText = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                $(this).val(cleanedText);
+            });
+        });
     </script>
 </body>
 </html>
