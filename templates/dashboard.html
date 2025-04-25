@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Mantenimiento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .dashboard-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+            margin-bottom: 20px;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-card {
+            padding: 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #0d6efd;
+        }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #212529;
+        }
+        .stat-label {
+            font-size: 1rem;
+            color: #6c757d;
+        }
+        .maintenance-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .maintenance-item {
+            border-left: 4px solid transparent;
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .maintenance-item.pending {
+            border-left-color: #ffc107;
+        }
+        .maintenance-item.completed {
+            border-left-color: #198754;
+        }
+        .maintenance-item.overdue {
+            border-left-color: #dc3545;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        .alert-section {
+            margin-bottom: 20px;
+        }
+        .vehicle-badge {
+            font-size: 0.8rem;
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Sistema de Mantenimiento</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('dashboard') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('vehiculos') }}">Mis Vehículos</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">Cerrar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row mb-4">
+            <div class="col">
+                <h2>Dashboard</h2>
+                <p class="text-muted">Bienvenido, {{ current_user.nombre }}</p>
+            </div>
+            <div class="col-auto">
+                <a href="{{ url_for('registro') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Nuevo Mantenimiento
+                </a>
+            </div>
+        </div>
+
+        <!-- Alertas -->
+        <div class="alert-section">
+            {% for alert in alerts %}
+            <div class="alert alert-{{ alert.type }} alert-dismissible fade show" role="alert">
+                <i class="bi {{ alert.icon }} me-2"></i>{{ alert.message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Estadísticas Generales -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="dashboard-card stat-card">
+                    <i class="bi bi-car-front stat-icon"></i>
+                    <div class="stat-value">{{ stats.total_vehiculos }}</div>
+                    <div class="stat-label">Vehículos Registrados</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="dashboard-card stat-card">
+                    <i class="bi bi-tools stat-icon"></i>
+                    <div class="stat-value">{{ stats.mantenimientos_mes }}</div>
+                    <div class="stat-label">Mantenimientos este Mes</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="dashboard-card stat-card">
+                    <i class="bi bi-exclamation-triangle stat-icon"></i>
+                    <div class="stat-value">{{ stats.mantenimientos_pendientes }}</div>
+                    <div class="stat-label">Mantenimientos Pendientes</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="dashboard-card stat-card">
+                    <i class="bi bi-currency-dollar stat-icon"></i>
+                    <div class="stat-value">₡{{ stats.gasto_total|format_number }}</div>
+                    <div class="stat-label">Gasto Total</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Gráficos -->
+            <div class="col-md-8">
+                <div class="dashboard-card p-3">
+                    <h4>Gastos por Categoría</h4>
+                    <div class="chart-container">
+                        <canvas id="gastosChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="dashboard-card p-3 mt-4">
+                    <h4>Tendencia de Mantenimientos</h4>
+                    <div class="chart-container">
+                        <canvas id="tendenciaChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Mantenimientos -->
+            <div class="col-md-4">
+                <div class="dashboard-card p-3">
+                    <h4>Próximos Mantenimientos</h4>
+                    <div class="maintenance-list">
+                        {% for mantenimiento in proximos_mantenimientos %}
+                        <div class="maintenance-item {{ mantenimiento.estado }}">
+                            <span class="vehicle-badge bg-secondary text-white">
+                                {{ mantenimiento.vehiculo_alias }}
+                            </span>
+                            <div class="mt-2">
+                                <strong>{{ mantenimiento.tipo }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar me-1"></i>
+                                    {{ mantenimiento.fecha_programada|format_date }}
+                                </small>
+                            </div>
+                            <div class="mt-2">
+                                <a href="{{ url_for('mantenimiento_detalle', id=mantenimiento.id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    Ver Detalles
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Gráfico de Gastos por Categoría
+        const gastosCtx = document.getElementById('gastosChart').getContext('2d');
+        new Chart(gastosCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ categorias_gastos|tojson }},
+                datasets: [{
+                    data: {{ gastos_por_categoria|tojson }},
+                    backgroundColor: [
+                        '#0d6efd',
+                        '#6610f2',
+                        '#6f42c1',
+                        '#d63384',
+                        '#dc3545',
+                        '#fd7e14',
+                        '#ffc107',
+                        '#198754'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    }
+                }
+            }
+        });
+
+        // Gráfico de Tendencia de Mantenimientos
+        const tendenciaCtx = document.getElementById('tendenciaChart').getContext('2d');
+        new Chart(tendenciaCtx, {
+            type: 'line',
+            data: {
+                labels: {{ meses|tojson }},
+                datasets: [{
+                    label: 'Cantidad de Mantenimientos',
+                    data: {{ tendencia_mantenimientos|tojson }},
+                    borderColor: '#0d6efd',
+                    tension: 0.1,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Actualizar datos en tiempo real (opcional)
+        function actualizarDatos() {
+            fetch('/api/dashboard/stats')
+                .then(response => response.json())
+                .then(data => {
+                    // Actualizar estadísticas
+                    document.querySelectorAll('.stat-value').forEach(el => {
+                        const key = el.dataset.stat;
+                        if (data.stats[key]) {
+                            el.textContent = data.stats[key];
+                        }
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Actualizar cada 5 minutos
+        setInterval(actualizarDatos, 300000);
+    </script>
+</body>
+</html>
