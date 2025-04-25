@@ -3,153 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Mantenimiento de Vehículos</title>
+    <title>Sistema de Mantenimiento</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">Sistema de Mantenimiento</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="{{ url_for('dashboard') }}">Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('registro') }}">Registrar Mantenimiento</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('logout') }}">Cerrar Sesión</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
     <div class="container mt-4">
-        <div class="row">
-            <div class="col-md-12">
-                <h2>Mis Vehículos</h2>
-                <div class="row">
-                    {% for vehiculo in vehiculos %}
-                    <div class="col-md-4 mb-4">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">{{ vehiculo.alias }}</h5>
-                                <p class="card-text">
-                                    {{ vehiculo.marca }} {{ vehiculo.modelo }} {{ vehiculo.anio }}
-                                </p>
-                                <a href="{{ url_for('ver_mantenimientos', vehiculo_id=vehiculo.id) }}" 
-                                   class="btn btn-primary">Ver Mantenimientos</a>
-                            </div>
-                        </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
-                    {% endfor %}
-                    
-                    <!-- Add Vehicle Card -->
-                    <div class="col-md-4 mb-4">
-                        <div class="card h-100 d-flex align-items-center justify-content-center" 
-                             style="cursor: pointer;" 
-                             data-bs-toggle="modal" 
-                             data-bs-target="#addVehicleModal">
-                            <div class="card-body text-center">
-                                <i class="bi bi-plus-circle" style="font-size: 2rem;"></i>
-                                <h5 class="mt-2">Agregar Vehículo</h5>
-                            </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="mb-0">Sistema de Mantenimiento</h1>
+            {% if g.user %}
+                <a href="{{ url_for('logout') }}" class="btn btn-danger">Cerrar Sesión ({{ g.user.username }})</a>
+            {% endif %}
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6 mx-auto">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-center">Registro de Mantenimiento</h5>
+                        <div class="d-grid">
+                            <a href="{{ url_for('registro') }}" class="btn btn-primary">Registrar Mantenimiento</a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Add Vehicle Modal -->
-        <div class="modal fade" id="addVehicleModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Agregar Nuevo Vehículo</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <!-- Modified Vehicles header with add button -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Vehículos</h2>
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#nuevoVehiculoModal">
+                Agregar Nuevo Vehículo
+            </button>
+        </div>
+
+        <div class="row">
+            {% for vehiculo in vehiculos %}
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ vehiculo.alias }}</h5>
+                        <p class="card-text">
+                            {{ vehiculo.marca }} {{ vehiculo.modelo }} ({{ vehiculo.anio }})
+                        </p>
+                        <a href="{{ url_for('ver_mantenimientos', vehiculo_id=vehiculo.id) }}"
+                           class="btn btn-secondary">Ver Mantenimientos</a>
                     </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- New Mechanics Section -->
+        <div class="d-flex justify-content-between align-items-center mb-3 mt-5">
+            <h2>Mecánicos</h2>
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#nuevoMecanicoModal">
+                Agregar Nuevo Mecánico
+            </button>
+        </div>
+
+        <!-- Add search input for mechanics -->
+        <div class="mb-3">
+            <input type="text" id="buscarMecanico" class="form-control" placeholder="Buscar mecánico...">
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Teléfono</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaMecanicos">
+                    {% for mecanico in mecanicos %}
+                    <tr>
+                        <td>{{ mecanico.nombre_mecanico }}</td>
+                        <td>{{ mecanico.telefono_mecanico }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- New Vehicle Modal -->
+    <div class="modal fade" id="nuevoVehiculoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Vehículo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="/agregar_vehiculo">
                     <div class="modal-body">
-                        <form id="addVehicleForm">
-                            <div class="mb-3">
-                                <label for="alias" class="form-label">Alias/Nombre</label>
-                                <input type="text" class="form-control" id="alias" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="marca" class="form-label">Marca</label>
-                                <input type="text" class="form-control" id="marca" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="modelo" class="form-label">Modelo</label>
-                                <input type="text" class="form-control" id="modelo" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="anio" class="form-label">Año</label>
-                                <input type="number" class="form-control" id="anio" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="tipo" class="form-label">Tipo</label>
-                                <input type="text" class="form-control" id="tipo">
-                            </div>
-                            <div class="mb-3">
-                                <label for="tipo_motor" class="form-label">Tipo de Motor</label>
-                                <input type="text" class="form-control" id="tipo_motor">
-                            </div>
-                            <div class="mb-3">
-                                <label for="tipo_transmision" class="form-label">Tipo de Transmisión</label>
-                                <input type="text" class="form-control" id="tipo_transmision">
-                            </div>
-                        </form>
+                        <div class="mb-3">
+                            <label class="form-label">Alias</label>
+                            <input type="text" class="form-control" name="alias" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Marca</label>
+                            <input type="text" class="form-control" name="marca" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Modelo</label>
+                            <input type="text" class="form-control" name="modelo" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Año</label>
+                            <input type="number" class="form-control" name="anio" required
+                                   style="-moz-appearance: textfield; -webkit-appearance: textfield; appearance: textfield;"
+                                   min="1900" max="2099" oninput="this.value = Math.abs(this.value)">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tipo</label>
+                            <select class="form-select" name="tipo" required>
+                                <option value="" disabled selected>Selecciona un tipo</option>
+                                <option value="Sedán">Sedán</option>
+                                <option value="SUV">SUV</option>
+                                <option value="SUV 4x4">SUV 4x4</option>
+                                <option value="Camioneta">Camioneta</option>
+                                <option value="Deportivo">Deportivo</option>
+                                <option value="Motocicleta">Motocicleta</option>
+                                <option value="Station Wagon">Station Wagon</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de Motor</label>
+                            <select class="form-select" name="tipo_motor" required>
+                                <option value="" disabled selected>Selecciona un tipo de motor</option>
+                                <option value="Gasolina">Gasolina</option>
+                                <option value="Diésel">Diésel</option>
+                                <option value="Híbrido">Híbrido</option>
+                                <option value="Eléctrico">Eléctrico</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Transmisión</label>
+                            <select class="form-select" name="tipo_transmision" required>
+                                <option value="" disabled selected>Selecciona una transmisión</option>
+                                <option value="Automática">Automática</option>
+                                <option value="Manual">Manual</option>
+                                <option value="CVT">CVT</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" onclick="addVehicle()">Guardar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
                     </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Mechanic Modal -->
+    <div class="modal fade" id="nuevoMecanicoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Mecánico</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
+                <form method="POST" action="/agregar_mecanico_directo">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre</label>
+                            <input type="text" class="form-control" name="nombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" name="telefono" required
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function addVehicle() {
-            const formData = {
-                alias: document.getElementById('alias').value,
-                marca: document.getElementById('marca').value,
-                modelo: document.getElementById('modelo').value,
-                anio: document.getElementById('anio').value,
-                tipo: document.getElementById('tipo').value,
-                tipo_motor: document.getElementById('tipo_motor').value,
-                tipo_transmision: document.getElementById('tipo_transmision').value
-            };
 
-            fetch('/agregar_vehiculo', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Error al agregar vehículo: ' + data.error);
+    <!-- Add search functionality for mechanics -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const buscarMecanico = document.getElementById('buscarMecanico');
+            const tablaMecanicos = document.getElementById('tablaMecanicos');
+
+            buscarMecanico.addEventListener('keyup', function() {
+                const termino = this.value.toLowerCase();
+                const filas = tablaMecanicos.getElementsByTagName('tr');
+
+                for (let i = 0; i < filas.length; i++) {
+                    const nombre = filas[i].getElementsByTagName('td')[0].textContent.toLowerCase();
+                    const telefono = filas[i].getElementsByTagName('td')[1].textContent.toLowerCase();
+
+                    if (nombre.includes(termino) || telefono.includes(termino)) {
+                        filas[i].style.display = '';
+                    } else {
+                        filas[i].style.display = 'none';
+                    }
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error al procesar la solicitud');
             });
-        }
+        });
     </script>
 </body>
 </html>
